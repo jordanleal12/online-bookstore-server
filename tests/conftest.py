@@ -1,8 +1,14 @@
 """Create pytest fixtures that set up flask application, database, and test client,
 passing the output of the functions to the test functions as reusable components."""
 
-import pytest
+import sys
+import os
+
+# Allows pytest to find main application and extension modules from anywhere
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from main import create_app
+import pytest
 from extensions import db
 
 
