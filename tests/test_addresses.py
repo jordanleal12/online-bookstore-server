@@ -10,7 +10,7 @@ from models import Address  # This will be created after failing the test
 def test_address_creation(db_session):
     """Test the model by creating a new address instance."""
 
-    # This will fail until Address model is created
+    # Create address instance using Address model
     address = Address(
         country_code="US",
         state_code="CA",
