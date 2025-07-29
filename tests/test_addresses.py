@@ -4,7 +4,7 @@ Using TDD, we will implement the tests first and then the corresponding code."""
 import pytest
 from sqlalchemy.exc import IntegrityError
 from main import db
-from models import Address  # This will be created after failing the test
+from models import Address
 
 
 def test_address_creation(db_session):
@@ -56,8 +56,8 @@ def test_required_fields(db_session, field, value, expected_error):
         # Uses kwargs to turn address_data dict into Address model fields
         # and replace each field with None one by one as the test iterates
         address = Address(**address_data)
-        db.session.add(address)
-        db.session.commit()
+        db_session.add(address)
+        db_session.commit()
 
 
 # Create parametrize decorated function to allow iteration of test cases
@@ -89,15 +89,14 @@ def test_iso_code_length(db_session, field, value):
         address = Address(
             **address_data
         )  # Uses kwargs to turn address_data into Address instance per iteration
-        db.session.add(address)
+        db_session.add(address)
 
 
 def test_create_address(client):
     """Test address_schema by creating a new address from
     a fake json POST request using the test client."""
 
-    # This will fail until address schema, model and routes are created
-    response = client.post(
+    response = client.post(  # Retrieve fake json data from Flask test client
         "/addresses",
         json={
             "country_code": "US",
@@ -108,7 +107,9 @@ def test_create_address(client):
         },
     )
     assert response.status_code == 201  # Response for successful creation
-    assert b"123 Test St" in response.data
+    assert (
+        response.json["street"] == "123 Test St"
+    )  # Check that values are returned in response
 
 
 def test_customer_address_relationship(db_session):
