@@ -3,7 +3,6 @@ Using TDD, we will implement the tests first and then the corresponding code."""
 
 import pytest
 from sqlalchemy.exc import IntegrityError
-from main import db
 from models import Customer  # This will be created after failing the test
 
 
@@ -15,7 +14,7 @@ def test_customer_creation(db_session):
         f_name="John",
         l_name="Smith",
         email="johnsmith@email.com",
-        phone="0412345678",
+        phone="+61412345678",
         address_id=1,
     )
 
@@ -38,6 +37,8 @@ def test_customer_creation(db_session):
         ("f_name", None, ValueError),  # Model level validation for missing values
         ("email", None, ValueError),
         ("email", "invalid-email", ValueError),  # Invalid email format
+        ("phone", "0476301981", ValueError),  # Check invalid E.164 format
+        ("phone", "+611111111", ValueError),  # Check valid format but number not in use
         ("address_id", None, IntegrityError),  # DB level validation for missing FK
     ],
 )

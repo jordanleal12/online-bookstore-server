@@ -3,7 +3,6 @@ Using TDD, we will implement the tests first and then the corresponding code."""
 
 import pytest
 from sqlalchemy.exc import IntegrityError
-from main import db
 from models import Address
 
 
@@ -125,14 +124,17 @@ def test_customer_address_relationship(db_session):
         street="123 Test St",
         postcode="12345",
     )
+    db_session.add(address)
+    db_session.commit()
     customer = Customer(
         f_name="John",
         l_name="Smith",
         email="johnsmith@email.com",
-        phone="0423456789",
+        phone="+61476301981",
         address_id=address.id,
     )
-
+    db_session.add(customer)
+    db_session.commit()
     # Check that address can be accessed through customer
     assert customer.address.street == "123 Test St"
     # Check that customer can be accessed through address

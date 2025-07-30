@@ -14,7 +14,12 @@ class Address(db.Model):
     city = db.Column(db.String(50))  # Optional as not all addresses have city
     street = db.Column(db.String(100), nullable=False)
     postcode = db.Column(db.String(10), nullable=False)  # Max length of postcodes is 10
-    # Relationship to Customer model to be added after creating Customer model
+
+    customers = db.relationship(
+        "Customer",
+        back_populates="address",
+        passive_deletes=True,  # Tells SQLAlchemy not to interfere with db for ON DELETE actions
+    )
 
     @validates("country_code")
     def validate_country_code(self, key, value):
