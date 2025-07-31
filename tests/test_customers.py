@@ -104,7 +104,7 @@ def test_create_customer(client, db_session):
     """Test customer_schema by creating a new customer from
     a fake json POST request using the test client."""
 
-    db_session.add(address)
+    db_session.add(address)  # Address_id requires real address instance
     db_session.commit()
 
     response = client.post(  # Retrieve fake json data from Flask test client
@@ -114,9 +114,11 @@ def test_create_customer(client, db_session):
             "l_name": "Smith",
             "email": "johnsmith@email.com",
             "phone": "+61412345678",
-            "address_id": 1,
+            "address_id": address.id,
         },
     )
+    if response.status_code != 201:  # Diagnose test failure
+        print(f"Response failed: {response.status_code}, {response.json}")
     assert response.status_code == 201  # Response for successful creation
     assert response.json["email"] == "johnsmith@email.com"  # Check values returned
 

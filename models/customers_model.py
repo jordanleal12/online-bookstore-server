@@ -35,6 +35,7 @@ class Customer(db.Model):
         """Enforces that a new customer creation requires valid address_id,
         but address_id can be deleted without error"""
 
+        print(f"Validating address_id={address_id}, self.id={self.id}")
         if self.id and not address_id:  # Skips if customer instance already exists
             return address_id
         if address_id:
