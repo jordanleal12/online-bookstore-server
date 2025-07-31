@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, abort
 from sqlalchemy.exc import IntegrityError
 from marshmallow.exceptions import ValidationError
-from psycopg2 import errorcodes
+from psycopg2 import errorcodes, IntegrityError as PGIntegrityError
+import sqlite3
 from extensions import db
 from schemas import customer_schema
 
@@ -39,14 +40,21 @@ def create_customer():
 
     except IntegrityError as e:  # Database constraint errors like NOT NULL or UNIQUE
         db.session.rollback()  # Rollback required as IntegrityError occurs after adding to session
-        if (
-            e.orig.pgcode == errorcodes.NOT_NULL_VIOLATION
-        ):  # Custom message for NOT NULL violations
-            return {
-                "error": "Required field missing",
-                "field": str(e.orig.diag.column_name),
-            }, 400
-        return {
+
+        if isinstance(e.orig, sqlite3.IntegrityError):  # Checks if sqlite db
+            if "UNIQUE constraint failed" in str(e.orig):
+                # Checks if db unique violation
+                return {"error": "Email already exists", "message": str(e.orig)}, 409
+
+        elif isinstance(e.orig, PGIntegrityError):  # Checks if PostgreSQL db
+            if e.orig.pgcode == errorcodes.NOT_NULL_VIOLATION:
+                return {  # if NOT NULL violation
+                    "error": "Required field missing",
+                    "field": str(e.orig.diag.column_name),
+                }, 400
+            elif e.orig.pgcode == errorcodes.UNIQUE_VIOLATION:  # If UNIQUE violation
+                return {"error": "Email already exists", "message": str(e.orig)}, 409
+        return {  # Catch missed IntegrityError's
             "error": "Database Integrity Error",
             "message": str(e.orig),
         }, 400  # General error message for miscellaneous integrity issues

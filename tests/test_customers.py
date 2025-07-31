@@ -123,15 +123,18 @@ def test_create_customer(client, db_session):
     assert response.json["email"] == "johnsmith@email.com"  # Check values returned
 
 
-def test_duplicate_email_post(client):
+def test_duplicate_email_post(client, db_session):
     """Test that email uniqueness is enforced with POST requests."""
+
+    db_session.add(address)  # Address_id requires real address instance
+    db_session.commit()
     # Create customer from post request
     client.post(
         "/customers",
         json={
             "f_name": "John",
             "email": "johnsmith@email.com",
-            "address_id": 1,
+            "address_id": address.id,
         },
     )
     # Attempt creation with duplicate email
@@ -140,7 +143,7 @@ def test_duplicate_email_post(client):
         json={
             "f_name": "Mary",
             "email": "johnsmith@email.com",
-            "address_id": 2,
+            "address_id": address.id,
         },
     )
     assert response.status_code == 409
