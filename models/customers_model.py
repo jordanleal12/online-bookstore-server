@@ -4,6 +4,7 @@ from sqlalchemy.orm import validates
 from email_validator import validate_email, EmailNotValidError
 import phonenumbers
 from extensions import db
+from models import Address
 
 
 class Customer(db.Model):
@@ -26,8 +27,24 @@ class Customer(db.Model):
         ),  # 'ondelete' tells database to set null on parent (address) deletion
         nullable=True,  # address_id needs to allow nullable for address deletion/change
     )
-
+    # Many to one relationship with address
     address = db.relationship("Address", back_populates="customers")
+
+    @validates("address_id")
+    def validate_address_id(self, key, address_id):
+        """Enforces that a new customer creation requires valid address_id,
+        but address_id can be deleted without error"""
+
+        if self.id and not address_id:  # Skips if customer instance already exists
+            return address_id
+        if address_id:
+            address = db.session.get(Address, address_id)
+            if not address:
+                raise ValueError(
+                    f"Invalid Address: Address with id {address_id} does not exist."
+                )
+            return address_id
+        raise ValueError("address_id cannot be None for customer creation")
 
     @validates("email")
     def validate_email(self, key, email):
@@ -55,10 +72,10 @@ class Customer(db.Model):
                 raise ValueError(f"Invalid phone number: {e}") from e
 
             if not phonenumbers.is_possible_number(number):  # Checks correct format
-                raise ValueError("Invalid number format, ensure E.164 formatting")
+                raise ValueError("Invalid number format: Ensure E.164 formatting")
 
             if not phonenumbers.is_valid_number(number):  # Checks number in use
-                raise ValueError("Number is correct format but not in use")
+                raise ValueError("Number not in use: Valid format but not in use")
 
             return phonenumbers.format_number(
                 number,

@@ -3,11 +3,18 @@ Using TDD, we will implement the tests first and then the corresponding code."""
 
 import pytest
 from sqlalchemy.exc import IntegrityError
-from models import Customer  # This will be created after failing the test
+from models import Customer, Address  # This will be created after failing the test
+
+address = Address(  # Valid address instance for referential validation
+    country_code="AU", state_code="NSW", street="test street", postcode="1234"
+)
 
 
 def test_customer_creation(db_session):
     """Test the model by creating a new customer instance."""
+
+    db_session.add(address)  # Address needs to be added to database for valid FK
+    db_session.commit()
 
     # Create customer instance using Customer model
     customer = Customer(
@@ -39,7 +46,8 @@ def test_customer_creation(db_session):
         ("email", "invalid-email", ValueError),  # Invalid email format
         ("phone", "0476301981", ValueError),  # Check invalid E.164 format
         ("phone", "+611111111", ValueError),  # Check valid format but number not in use
-        ("address_id", None, IntegrityError),  # DB level validation for missing FK
+        ("address_id", None, ValueError),  # Model level validation for missing FK
+        ("address_id", 3, ValueError),  # Model level validation for invalid FK
     ],
 )
 def test_required_fields(db_session, field, value, expected_error):
@@ -68,11 +76,12 @@ def test_required_fields(db_session, field, value, expected_error):
 def test_unique_email(db_session):
     """Test that email field is unique in Customer Model."""
 
+    db_session.add(address)  # Address_id requires real address instance
     customer1 = Customer(
         f_name="John",
         l_name="Smith",
         email="johnsmith@email.com",
-        phone="0412345678",
+        phone="+61412345678",
         address_id=1,
     )  # Create and add customer to test database
     db_session.add(customer1)
@@ -83,17 +92,20 @@ def test_unique_email(db_session):
             f_name="Mary",
             l_name="Jane",
             email="johnsmith@email.com",
-            phone="0498765432",
-            address_id=2,
+            phone="+61498765432",
+            address_id=1,
         )
         db_session.add(customer2)
         db_session.commit()
         db_session.rollback()
 
 
-def test_create_customer(client):
+def test_create_customer(client, db_session):
     """Test customer_schema by creating a new customer from
     a fake json POST request using the test client."""
+
+    db_session.add(address)
+    db_session.commit()
 
     response = client.post(  # Retrieve fake json data from Flask test client
         "/customers",
@@ -101,7 +113,7 @@ def test_create_customer(client):
             "f_name": "John",
             "l_name": "Smith",
             "email": "johnsmith@email.com",
-            "phone": "0412345678",
+            "phone": "+61412345678",
             "address_id": 1,
         },
     )
